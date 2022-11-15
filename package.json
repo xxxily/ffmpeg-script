@@ -1,0 +1,38 @@
+{
+  "name": "ffmpeg-script",
+  "version": "0.0.1",
+  "description": "ffmpeg-script",
+  "main": "bin/index.js",
+  "scripts": {
+    "start": "node bin/index.js"
+  },
+  "bin": {
+    "flv2mp4": "./bin/flvToMp4.js",
+    "flvtomp4": "./bin/flvToMp4.js",
+    "audioVideoMerger": "./bin/audioVideoMerger.js",
+    "avm": "./bin/audioVideoMerger.js"
+  },
+  "author": "Blaze",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
+  "homepage": "https://github.com/xxxily/ffmpeg-script",
+  "repository": "https://github.com/xxxily/ffmpeg-script",
+  "git": "",
+  "bugs": {
+    "url": "https://github.com/xxxily/ffmpeg-script/issues"
+  },
+  "dependencies": {
+    "cron": "^1.8.2",
+    "dayjs": "^1.11.0",
+    "fast-glob": "^3.2.11",
+    "fs-extra": "^10.0.1",
+    "glob": "^7.2.0",
+    "shelljs": "^0.8.5"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">= 12.0.0",
+    "npm": ">= 6.0.0"
+  }
+}
