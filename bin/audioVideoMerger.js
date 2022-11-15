@@ -66,7 +66,7 @@ async function main (cwd) {
     const startTime = Date.now()
     const videoFile = videoFiles[0]
     const videoFileInfo = path.parse(videoFile)
-    const resultVideoFileName = `${videoFileInfo.name.replace(/_video/gi, '')}.${videoFileInfo.ext}`
+    const resultVideoFileName = `${videoFileInfo.name.replace(/_video/gi, '')}${videoFileInfo.ext}`
     const resultVideoFilePath = path.join(cwd, `./audio-video-merger/${resultVideoFileName}`)
 
     if (fs.existsSync(resultVideoFilePath)) {
