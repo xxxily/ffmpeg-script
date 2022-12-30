@@ -1,6 +1,6 @@
 {
   "name": "ffmpeg-script",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "ffmpeg-script",
   "main": "bin/index.js",
   "scripts": {
