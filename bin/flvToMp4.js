@@ -14,20 +14,22 @@ const tipsHead = "[flv-to-mp4]";
  */
 const program = new Command();
 program.version(pkg.version);
-program
-  .option("-d, --debug", "是否输出相关调试信息", false)
-  .option("-q, --inquirer", "是否使用inquirer来引导输入相关参数", false)
-  .option("-w, --watch", "是否持续检查有需要转换的文件", false)
-  .option(
-    "-t, --timeout <type>",
-    "指定重复执行转换检查的时间间隔，默认30秒",
-    30
-  )
-  .option("-a, --archive", "是否自动归档（暂支持按日期归档）", false)
-  .option("-r, --remove", "转换完成后，是否删除flv源文件", false)
-  .option("--no-skip", "是否自动跳过不符合转换条件的文件", true)
-  .option("-c, --cwd <type>", "指定命令行的工作目录", process.cwd())
-  .option("-o, --output <type>", "指定转换成功后的输出目录");
+
+const optionArgsList = [
+  ["-d, --debug", "是否输出相关调试信息", false],
+  ["-q, --inquirer", "是否使用inquirer来引导输入相关参数", false],
+  ["-w, --watch", "是否持续检查有需要转换的文件", false],
+  ["-t, --timeout <type>", "指定重复执行转换检查的时间间隔，默认30秒", 30],
+  ["-a, --archive", "是否自动归档（暂支持按日期归档）", false],
+  ["-r, --remove", "转换完成后，是否删除flv源文件", false],
+  ["--no-skip", "是否自动跳过不符合转换条件的文件", true],
+  ["-c, --cwd <type>", "指定命令行的工作目录", process.cwd()],
+  ["-o, --output <type>", "指定转换成功后的输出目录"],
+];
+
+optionArgsList.forEach((optionArgs) => {
+  program.option.apply(program, optionArgs);
+});
 
 program.parse(process.argv);
 const cmdOpts = program.opts();
@@ -280,7 +282,9 @@ async function watch(inputDir, outputDir, cmdOpts) {
   }
 
   watchCount++;
-  console.log(`${tipsHead}[Watching] 已执行 ${watchCount} 次`);
+  console.log(
+    `${tipsHead}[Watching][${inputDir}]=>[${outputDir}] 已执行 ${watchCount} 次`
+  );
 
   /* 进行循环监听 */
   const timeout = Math.abs(Number(cmdOpts.timeout) || 30) * 1000;
