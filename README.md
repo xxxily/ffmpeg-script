@@ -4,7 +4,7 @@
 
 ## 使用说明
 
-使用前先确保你电脑已经安装了：[ffmpeg](http://ffmpeg.org/)  
+使用前先确保你电脑已经安装了：[ffmpeg](http://ffmpeg.org/) 和 [nodejs](https://nodejs.org/)  
 
 基本工作原理为执行ffmpeg的相关命令，例如：
 
@@ -26,6 +26,9 @@ ffmpeg -i input.flv -vcodec copy -acodec copy output.mp4
 - 一个场景一条命令，简单快捷
 
 ### 安装脚本
+
+如果你的电脑已安装[ffmpeg](http://ffmpeg.org/) 和 [nodejs](https://nodejs.org/)  
+只需执行下面的命令即可安装ffmpeg-script  
 
 ```sh
 # npm
