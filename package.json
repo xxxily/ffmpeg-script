@@ -4,7 +4,11 @@
   "description": "ffmpeg-script",
   "main": "bin/index.js",
   "scripts": {
-    "start": "node bin/index.js"
+    "start": "node bin/index.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
   },
   "bin": {
     "flv2mp4": "./bin/flvToMp4.js",
@@ -33,7 +37,13 @@
     "inquirer": "^8.0.0",
     "shelljs": "^0.8.5"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@tauri-apps/api": "^1.5.0",
+    "@tauri-apps/cli": "^1.5.0",
+    "@vitejs/plugin-vue": "^4.2.3",
+    "vite": "^4.4.9",
+    "vue": "^3.3.4"
+  },
   "engines": {
     "node": ">= 12.0.0",
     "npm": ">= 6.0.0"

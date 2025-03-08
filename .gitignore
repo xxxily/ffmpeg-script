@@ -17,4 +17,12 @@ yarn-error.log*
 *.sln
 *.vscode
 
+# Tauri 相关忽略
+/src-tauri/target/
+/src-tauri/WixTools
+/src-tauri/gen/
+/src-tauri/.cargo/
+/src-tauri/dist/
+/src-tauri/.turbo/
+
 
