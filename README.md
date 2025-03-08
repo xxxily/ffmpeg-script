@@ -25,6 +25,20 @@ ffmpeg -i input.flv -vcodec copy -acodec copy output.mp4
 - 可随时终止，无需担心出错
 - 一个场景一条命令，简单快捷
 
+## 应用界面
+
+应用下载地址：[ffmpeg-script releases](https://github.com/xxxily/ffmpeg-script/releases)
+
+注意：使用应用界面的话还是需要安装[ffmpeg](http://ffmpeg.org/)，但不用安装nodejs，应用界面的版本已经将命令重构成rust版本
+
+音视频文件合并（无需重新编码）  
+
+![ui_02](./imgs/ui_02.png)  
+
+将flv文件快速转换成mp4文件（无需重新编码）  
+
+![ui_01](./imgs/ui_01.png)  
+
 ### 安装脚本
 
 如果你的电脑已安装[ffmpeg](http://ffmpeg.org/) 和 [nodejs](https://nodejs.org/)  

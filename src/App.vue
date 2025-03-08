@@ -2,6 +2,16 @@
   <div class="container">
     <h1>FFmpeg Script 管理界面</h1>
     
+    <!-- 添加 FFmpeg 版本信息显示 -->
+    <div class="ffmpeg-info" v-if="ffmpegVersion">
+      <span>FFmpeg 版本: {{ ffmpegVersion }}</span>
+    </div>
+    <div class="ffmpeg-warning" v-if="ffmpegError">
+      <span>{{ ffmpegError }}</span>
+      <p>请安装 FFmpeg 后再使用本工具。安装命令：</p>
+      <pre>brew install ffmpeg</pre>
+    </div>
+    
     <div class="tabs">
       <button 
         :class="{ active: activeTab === 'flv2mp4' }" 
@@ -63,7 +73,18 @@
           <input v-model="flv2mp4.timeout" type="number" min="1" />
         </div>
         
-        <button class="primary" @click="runCommand('flv2mp4')">开始转换</button>
+        <button class="primary" @click="runCommand('flv2mp4')" :disabled="flv2mp4.isRunning">
+          {{ flv2mp4.isRunning ? '正在执行...' : '开始转换' }}
+        </button>
+        
+        <!-- FLV 转 MP4 输出日志 -->
+        <div class="output-panel">
+          <h3>FLV 转 MP4 输出日志</h3>
+          <div class="output-content" ref="flv2mp4OutputContent">
+            <pre>{{ flv2mp4Output }}</pre>
+          </div>
+          <button @click="clearOutput('flv2mp4')">清空日志</button>
+        </div>
       </div>
       
       <!-- 音视频合并面板 -->
@@ -76,16 +97,19 @@
           </div>
         </div>
         
-        <button class="primary" @click="runCommand('avm')">开始合并</button>
+        <button class="primary" @click="runCommand('avm')" :disabled="avm.isRunning">
+          {{ avm.isRunning ? '正在执行...' : '开始合并' }}
+        </button>
+        
+        <!-- 音视频合并输出日志 -->
+        <div class="output-panel">
+          <h3>音视频合并输出日志</h3>
+          <div class="output-content" ref="avmOutputContent">
+            <pre>{{ avmOutput }}</pre>
+          </div>
+          <button @click="clearOutput('avm')">清空日志</button>
+        </div>
       </div>
-    </div>
-    
-    <div class="output-panel">
-      <h3>输出日志</h3>
-      <div class="output-content" ref="outputContent">
-        <pre>{{ output }}</pre>
-      </div>
-      <button @click="clearOutput">清空日志</button>
     </div>
   </div>
 </template>
@@ -99,9 +123,12 @@ import { listen } from '@tauri-apps/api/event'
 export default {
   setup() {
     const activeTab = ref('flv2mp4')
-    const output = ref('')
-    const outputContent = ref(null)
-    const isRunning = ref(false)
+    const flv2mp4Output = ref('')
+    const avmOutput = ref('')
+    const flv2mp4OutputContent = ref(null)
+    const avmOutputContent = ref(null)
+    const ffmpegVersion = ref('')
+    const ffmpegError = ref('')
     
     const flv2mp4 = ref({
       cwd: '',
@@ -110,18 +137,28 @@ export default {
       archive: false,
       remove: false,
       debug: false,
-      timeout: 30
+      timeout: 30,
+      isRunning: false
     })
     
     const avm = ref({
-      cwd: ''
+      cwd: '',
+      isRunning: false
     })
     
     // 监听输出变化，自动滚动到底部
-    watch(output, () => {
+    watch(flv2mp4Output, () => {
       setTimeout(() => {
-        if (outputContent.value) {
-          outputContent.value.scrollTop = outputContent.value.scrollHeight
+        if (flv2mp4OutputContent.value) {
+          flv2mp4OutputContent.value.scrollTop = flv2mp4OutputContent.value.scrollHeight
+        }
+      }, 100)
+    })
+    
+    watch(avmOutput, () => {
+      setTimeout(() => {
+        if (avmOutputContent.value) {
+          avmOutputContent.value.scrollTop = avmOutputContent.value.scrollHeight
         }
       }, 100)
     })
@@ -129,8 +166,55 @@ export default {
     // 监听来自Rust后端的实时输出事件
     onMounted(async () => {
       await listen('command-output', (event) => {
-        appendOutput(event.payload)
+        // 根据命令类型将输出添加到对应的日志区域
+        const payload = event.payload
+        if (typeof payload === 'string') {
+          // 根据输出内容前缀判断命令类型
+          if (payload.includes('[flv-to-mp4]')) {
+            appendOutput('flv2mp4', payload)
+          } else if (payload.includes('[Audio-Video-Merger]')) {
+            appendOutput('avm', payload)
+          } else {
+            // 如果无法判断，则根据当前正在运行的命令类型添加
+            if (flv2mp4.value.isRunning) {
+              appendOutput('flv2mp4', payload)
+            } else if (avm.value.isRunning) {
+              appendOutput('avm', payload)
+            } else {
+              // 如果都没有运行，则添加到当前活动标签
+              appendOutput(activeTab.value, payload)
+            }
+          }
+          
+          // 检查输出中是否包含命令执行完成的信息
+          if (payload.includes('命令执行完成')) {
+            if (payload.includes('[flv-to-mp4]') || 
+                (flv2mp4.value.isRunning && !payload.includes('[Audio-Video-Merger]'))) {
+              flv2mp4.value.isRunning = false
+            } else if (payload.includes('[Audio-Video-Merger]') || 
+                      (avm.value.isRunning && !payload.includes('[flv-to-mp4]'))) {
+              avm.value.isRunning = false
+            }
+          }
+        }
       })
+      
+      // 监听命令执行完成事件
+      try {
+        await listen('command-complete', (event) => {
+          const { commandType } = event.payload || {}
+          if (commandType === 'flv2mp4') {
+            flv2mp4.value.isRunning = false
+          } else if (commandType === 'avm') {
+            avm.value.isRunning = false
+          }
+        })
+      } catch (err) {
+        console.error('监听命令完成事件失败:', err)
+      }
+      
+      // 检查 FFmpeg
+      await checkFFmpeg()
     })
     
     const selectDirectory = async (tab, field) => {
@@ -149,27 +233,45 @@ export default {
           }
         }
       } catch (err) {
-        appendOutput(`选择目录出错: ${err}`)
+        appendOutput(tab, `选择目录出错: ${err}`)
       }
     }
     
-    const appendOutput = (text) => {
-      output.value += text + '\n'
+    const appendOutput = (commandType, text) => {
+      if (commandType === 'flv2mp4') {
+        flv2mp4Output.value += text + '\n'
+      } else if (commandType === 'avm') {
+        avmOutput.value += text + '\n'
+      }
     }
     
-    const clearOutput = () => {
-      output.value = ''
+    const clearOutput = (commandType) => {
+      if (commandType === 'flv2mp4') {
+        flv2mp4Output.value = ''
+      } else if (commandType === 'avm') {
+        avmOutput.value = ''
+      }
     }
     
     const runCommand = async (commandType) => {
       try {
-        if (isRunning.value) {
-          appendOutput('已有命令正在执行，请等待完成...')
+        // 检查对应标签页的运行状态
+        if (commandType === 'flv2mp4' && flv2mp4.value.isRunning) {
+          appendOutput('flv2mp4', '已有 FLV 转 MP4 命令正在执行，请等待完成...')
+          return
+        } else if (commandType === 'avm' && avm.value.isRunning) {
+          appendOutput('avm', '已有音视频合并命令正在执行，请等待完成...')
           return
         }
         
-        isRunning.value = true
-        appendOutput(`正在执行 ${commandType} 命令...`)
+        // 设置对应标签页的运行状态
+        if (commandType === 'flv2mp4') {
+          flv2mp4.value.isRunning = true
+          appendOutput('flv2mp4', `正在执行 ${commandType} 命令...`)
+        } else if (commandType === 'avm') {
+          avm.value.isRunning = true
+          appendOutput('avm', `正在执行 ${commandType} 命令...`)
+        }
         
         const args = []
         if (commandType === 'flv2mp4') {
@@ -191,19 +293,61 @@ export default {
           commandType,
           args
         })
+        
+        // 如果不是监视模式，则在命令启动后立即重置状态
+        // 监视模式下的状态重置由后端通过事件通知
+        if (commandType === 'flv2mp4' && !flv2mp4.value.watch) {
+          setTimeout(() => {
+            flv2mp4.value.isRunning = false
+          }, 1000)
+        } else if (commandType === 'avm') {
+          // 音视频合并命令执行后重置状态
+          setTimeout(() => {
+            avm.value.isRunning = false
+          }, 1000)
+        }
       } catch (error) {
-        appendOutput(`执行出错: ${error}`)
-        isRunning.value = false
+        const errorMsg = `执行出错: ${error}`
+        appendOutput(commandType, errorMsg)
+        
+        // 重置运行状态
+        if (commandType === 'flv2mp4') {
+          flv2mp4.value.isRunning = false
+        } else if (commandType === 'avm') {
+          avm.value.isRunning = false
+        }
       }
     }
+    
+    // 检查 FFmpeg 是否已安装
+    const checkFFmpeg = async () => {
+      try {
+        const version = await invoke('get_ffmpeg_version')
+        ffmpegVersion.value = version
+        ffmpegError.value = ''
+      } catch (error) {
+        ffmpegError.value = error
+        ffmpegVersion.value = ''
+        appendOutput('flv2mp4', `FFmpeg 检查失败: ${error}`)
+      }
+    }
+    
+    // 在组件挂载时检查 FFmpeg
+    onMounted(async () => {
+      // 检查 FFmpeg
+      await checkFFmpeg()
+    })
     
     return {
       activeTab,
       flv2mp4,
       avm,
-      output,
-      outputContent,
-      isRunning,
+      flv2mp4Output,
+      avmOutput,
+      flv2mp4OutputContent,
+      avmOutputContent,
+      ffmpegVersion,
+      ffmpegError,
       selectDirectory,
       runCommand,
       clearOutput
@@ -311,6 +455,11 @@ button.primary:hover {
   background: #45a049;
 }
 
+button.primary:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+}
+
 .output-panel {
   margin-top: 30px;
   border: 1px solid #ddd;
@@ -349,5 +498,28 @@ button.primary:hover {
 
 .output-panel button:hover {
   background: #e5e5e5;
+}
+
+.ffmpeg-info {
+  background-color: #e7f7e7;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 4px;
+  border-left: 4px solid #4CAF50;
+}
+
+.ffmpeg-warning {
+  background-color: #fff3e0;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 4px;
+  border-left: 4px solid #ff9800;
+}
+
+.ffmpeg-warning pre {
+  background: #f5f5f5;
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 5px;
 }
 </style>
